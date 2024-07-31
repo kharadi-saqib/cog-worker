@@ -229,8 +229,7 @@ class CogGeneratorWorker(BaseWorker):
                 #     level=logging.DEBUG,
                 # )
                 output_format = "COG"
-                output_format_options = ["BIGTIFF=YES"]
-                output_format_options = ["NUM_THREADS=ALL_CPUS"]
+                output_format_options = ["BIGTIFF=YES", "NUM_THREADS=ALL_CPUS"]
             else:
                 # log(
                 #     "File size is less than 4GB.",
