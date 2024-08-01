@@ -1,0 +1,68 @@
+# Mount the network SSD (example for NFS)
+# Replace <server>:/path/to/ssd with your actual NFS server and path
+sudo mount -t nfs <server>:/path/to/ssd /mnt/ssd
+
+# Set the input and output filenames
+input_file="input.tif"
+output_file="output_cog.tif"
+
+# Set the temporary directory to the network SSD
+export TMPDIR="/mnt/ssd/temp"
+
+# Create the temporary directory if it doesn't exist
+mkdir -p $TMPDIR
+
+# Set the GDAL_CACHEMAX value based on available RAM
+# Assuming 32 GB RAM with 50% allocated for GDAL
+GDAL_CACHEMAX=16384  # 16 GB in megabytes
+
+# Use gdal_translate to convert the input TIFF to a COG
+gdal_translate $input_file $output_file -of COG \
+    -co COMPRESS=LZW \             # Use LZW compression for lossless data reduction
+    -co BLOCKSIZE=256 \             # Set tile size to 256x256 pixels for balanced performance
+    -co TILED=YES \                 # Ensure the output is tiled for optimized data access
+    -co NUM_THREADS=ALL_CPUS \      # Utilize all available CPU cores for processing
+    -co RESAMPLING=NEAREST \        # Use nearest neighbor resampling for overviews
+    --config GDAL_CACHEMAX $GDAL_CACHEMAX \  # Set memory cache size for GDAL operations
+    --config CPL_TMPDIR $TMPDIR     # Set the temporary directory to the network SSD
+
+# Add overviews to the COG for improved performance at different zoom levels
+gdaladdo -r average $output_file 2 4 8 16 32 64 \
+    --config GDAL_NUM_THREADS ALL_CPUS \     # Utilize all available CPU cores for adding overviews
+    --config GDAL_CACHEMAX $GDAL_CACHEMAX \  # Set memory cache size for GDAL operations
+    --config CPL_TMPDIR $TMPDIR              # Set the temporary directory to the network SSD
+
+
+
+Explanation of Parameters
+Mount Command: sudo mount -t nfs <server>:/path/to/ssd /mnt/ssd
+
+Purpose: Mounts the network SSD to a local directory for fast temporary storage.
+<server>:/path/to/ssd: Replace with your actual NFS server and path.
+Input and Output Filenames:
+
+input_file="input.tif": Specifies the input TIFF file.
+output_file="output_cog.tif": Specifies the output Cloud Optimized GeoTIFF file.
+Temporary Directory:
+
+export TMPDIR="/mnt/ssd/temp": Sets the temporary directory to the mounted SSD.
+mkdir -p $TMPDIR: Creates the temporary directory if it doesn't already exist.
+GDAL_CACHEMAX Calculation:
+
+GDAL_CACHEMAX=16384: Sets the cache size to 16 GB (16384 MB) based on 50% of 32 GB RAM.
+gdal_translate Parameters:
+
+-of COG: Specifies the output format as Cloud Optimized GeoTIFF.
+-co COMPRESS=LZW: Uses LZW compression for lossless data reduction.
+-co BLOCKSIZE=256: Sets tile size to 256x256 pixels for balanced performance.
+-co TILED=YES: Ensures the output is tiled for optimized data access.
+-co NUM_THREADS=ALL_CPUS: Utilizes all available CPU cores for processing.
+-co RESAMPLING=NEAREST: Uses nearest neighbor resampling for overviews.
+--config GDAL_CACHEMAX $GDAL_CACHEMAX: Sets the memory cache size for GDAL operations to 16 GB.
+--config CPL_TMPDIR $TMPDIR: Sets the temporary directory to the network SSD.
+gdaladdo Parameters:
+
+gdaladdo -r average $output_file 2 4 8 16 32 64: Adds overviews at various levels using average resampling.
+--config GDAL_NUM_THREADS ALL_CPUS: Utilizes all available CPU cores for adding overviews.
+--config GDAL_CACHEMAX $GDAL_CACHEMAX: Sets the memory cache size for GDAL operations to 16 GB.
+--config CPL_TMPDIR $TMPDIR: Sets the temporary directory to the network SSD.
