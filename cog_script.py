@@ -8,6 +8,7 @@ def generate_cog(input_file, output_file):
     output_format_options = [
         "COMPRESS=LZW",
         "BLOCKSIZE=256",
+        "NUM_THREADS=ALL_CPUS",
         "RESAMPLING=NEAREST",
         "OVERVIEW_RESAMPLING=AVERAGE"
     ]
